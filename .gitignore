@@ -1,0 +1,28 @@
+# Fichiers Mac
+.DS_Store
+**/.DS_Store
+
+# Fichiers de sauvegarde
+*.bak
+
+# Environnement virtuel
+venv/
+env/
+.env
+
+# Fichiers Python compilés
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Logs et fichiers temporaires
+logs/
+*.log
+
+# Fichiers Claude
+CLAUDE.md
