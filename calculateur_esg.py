@@ -59,10 +59,14 @@ def initialize_session_state():
     default_values = {
         'page': 'accueil',        # Page actuelle
         'user_data': {            # Données utilisateur minimales
+            'prenom': "",
             'nom': "",
             'email': "",
+            'telephone': "",
             'niveau_etudes': "",
-            'experience': ""
+            'experience': "",
+            'opt_in': False,
+            'metier': ""          # Stocke aussi le métier dans user_data pour cohérence
         },
         'secteur': "",            # Secteur sélectionné
         'metier': "",             # Métier sélectionné
@@ -75,6 +79,12 @@ def initialize_session_state():
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
+            
+    # S'assurer que tous les champs user_data existent
+    if 'user_data' in st.session_state:
+        for field, default in default_values['user_data'].items():
+            if field not in st.session_state.user_data:
+                st.session_state.user_data[field] = default
 
 def change_page(page_name):
     """Change la page actuelle et force le rechargement."""
@@ -158,7 +168,8 @@ def create_salary_chart(df_filtered):
     """Crée un graphique d'évolution salariale simplifié."""
     colors = st.session_state.colors
     
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Réduire la taille du graphique de 30%
+    fig, ax = plt.subplots(figsize=(7, 4))
     
     # Créer des données pour le graphique
     experience = df_filtered['Expérience'].tolist()
@@ -172,17 +183,17 @@ def create_salary_chart(df_filtered):
     ax.fill_between(x, min_salary, max_salary, alpha=0.2, color=colors['primary'], label='Fourchette salariale')
     
     # Personnaliser le graphique
-    ax.set_ylabel('Salaire annuel brut (€)', fontsize=12)
-    ax.set_xlabel('Expérience', fontsize=12)
+    ax.set_ylabel('Salaire annuel brut (€)', fontsize=10)
+    ax.set_xlabel('Expérience', fontsize=10)
     ax.set_xticks(x)
-    ax.set_xticklabels(experience)
+    ax.set_xticklabels(experience, fontsize=8)
     ax.grid(True, linestyle='--', alpha=0.7)
-    ax.legend()
+    ax.legend(fontsize=8)
     
     # Ajouter les valeurs
     for i, avg_val in enumerate(avg_salary):
         ax.annotate(f"{avg_val}€", (i, avg_val), textcoords="offset points", 
-                    xytext=(0,10), ha='center', fontweight='bold')
+                    xytext=(0,10), ha='center', fontweight='bold', fontsize=8)
     
     plt.tight_layout()
     return fig
@@ -220,23 +231,46 @@ def display_header(step=None):
         )
 
 def display_email_form():
-    """Affiche un formulaire de collecte d'email simplifié."""
+    """Affiche un formulaire de collecte d'email et téléphone simplifié."""
     if not st.session_state.email_submitted:
         st.markdown("### Pour accéder aux résultats complets")
         st.markdown("Recevez gratuitement des informations sur les carrières ESG et nos formations.")
         
-        email = st.text_input("Votre email professionnel", placeholder="nom@entreprise.com")
+        # Pré-remplir les champs si disponibles
+        email_value = st.session_state.user_data.get('email', '')
+        telephone_value = st.session_state.user_data.get('telephone', '')
+        
+        email = st.text_input("Votre email professionnel*", 
+                              value=email_value, 
+                              placeholder="nom@entreprise.com")
+        telephone = st.text_input("Votre numéro de téléphone*", 
+                                  value=telephone_value, 
+                                  placeholder="06XXXXXXXX")
         opt_in = st.checkbox("J'accepte de recevoir des informations de l'Institut d'Économie Durable", value=True)
+        
+        st.markdown("*Champs obligatoires")
         
         submit = st.button("Accéder aux résultats complets", type="primary")
         
         if submit:
+            errors = []
+            
+            # Validation de l'email
             if not email or "@" not in email or "." not in email:
-                st.error("Veuillez entrer une adresse email valide.")
+                errors.append("Veuillez entrer une adresse email valide.")
+            
+            # Validation basique du téléphone (au moins 10 chiffres)
+            if not telephone or len(''.join(c for c in telephone if c.isdigit())) < 10:
+                errors.append("Veuillez entrer un numéro de téléphone valide (minimum 10 chiffres).")
+            
+            if errors:
+                for error in errors:
+                    st.error(error)
                 return False
             
-            # Enregistrer l'email
+            # Enregistrer les coordonnées
             st.session_state.user_data['email'] = email
+            st.session_state.user_data['telephone'] = telephone
             st.session_state.user_data['opt_in'] = opt_in
             st.session_state.email_submitted = True
             
@@ -263,6 +297,16 @@ def page_accueil():
     pour contribuer positivement à la transition écologique.
     """)
     
+    st.info("""
+    **Comment utiliser cet outil ?**
+    
+    En quelques étapes simples, vous allez :
+    1. Renseigner votre profil
+    2. Découvrir les métiers ESG qui correspondent à vos aspirations
+    3. Visualiser les perspectives salariales et compétences requises
+    4. Recevoir des recommandations personnalisées pour votre carrière
+    """)
+    
     if st.button("Commencer", use_container_width=True):
         change_page("profil")
 
@@ -275,6 +319,7 @@ def page_profil():
     
     # Formulaire simplifié
     with st.form(key="profil_form"):
+        prenom = st.text_input("Votre prénom", value=st.session_state.user_data.get('prenom', ''))
         nom = st.text_input("Votre nom", value=st.session_state.user_data.get('nom', ''))
         
         niveau_etudes = st.selectbox(
@@ -295,13 +340,16 @@ def page_profil():
         
         if submit:
             # Vérification minimale
-            if not nom:
+            if not prenom:
+                st.error("Veuillez saisir votre prénom.")
+            elif not nom:
                 st.error("Veuillez saisir votre nom.")
             elif not niveau_etudes:
                 st.error("Veuillez sélectionner votre niveau d'études.")
             else:
                 # Mettre à jour les données utilisateur
                 st.session_state.user_data.update({
+                    'prenom': prenom,
                     'nom': nom,
                     'niveau_etudes': niveau_etudes,
                     'experience': experience
@@ -397,11 +445,18 @@ def page_apercu():
         st.pyplot(fig)
     
     st.markdown("---")
-    st.markdown("### Vous souhaitez accéder aux résultats complets ?")
-    st.markdown("Pour obtenir toutes les perspectives de ce métier et nos recommandations:")
     
-    if st.button("Continuer", type="primary", use_container_width=True):
-        change_page("email")
+    # Si l'utilisateur a déjà soumis ses coordonnées, on peut aller directement aux résultats complets
+    if st.session_state.email_submitted:
+        st.markdown("### Accéder aux résultats complets")
+        if st.button("Voir les résultats complets", type="primary", use_container_width=True):
+            change_page("resultats")
+    else:
+        st.markdown("### Vous souhaitez accéder aux résultats complets ?")
+        st.markdown("Pour obtenir toutes les perspectives de ce métier et nos recommandations:")
+        
+        if st.button("Continuer", type="primary", use_container_width=True):
+            change_page("email")
 
 def page_email():
     """Page dédiée à la collecte d'email."""
@@ -420,14 +475,18 @@ def page_resultats():
     """Affiche la page des résultats simplifiée."""
     display_header("resultats")
     
-    # Vérifier que l'email a été soumis
+    # Vérifier que les coordonnées ont été soumises
     if not st.session_state.email_submitted:
-        st.warning("Veuillez d'abord fournir votre email.")
+        st.warning("Veuillez d'abord fournir vos coordonnées.")
         change_page("email")
         return
-    
-    # Afficher les résultats complets
-    st.markdown("## Résultats complets")
+        
+    # Personnalisation avec le prénom s'il existe
+    if st.session_state.user_data.get('prenom'):
+        st.markdown(f"## Bonjour {st.session_state.user_data['prenom']}, voici vos résultats !")
+    else:
+        # Afficher les résultats complets
+        st.markdown("## Résultats complets")
     
     # Charger les données
     data_dict = load_data()
@@ -488,25 +547,13 @@ def page_resultats():
     
     # Option de retour à l'accueil
     if st.button("Découvrir d'autres métiers", use_container_width=True):
-        # Conserver l'email mais réinitialiser le métier
-        email = st.session_state.user_data.get('email', '')
-        opt_in = st.session_state.user_data.get('opt_in', False)
-        nom = st.session_state.user_data.get('nom', '')
-        niveau_etudes = st.session_state.user_data.get('niveau_etudes', '')
-        experience = st.session_state.user_data.get('experience', '')
+        # Conserver toutes les données utilisateur mais réinitialiser uniquement le métier
+        current_user_data = st.session_state.user_data.copy()
         
         # Réinitialiser la sélection de métier
         st.session_state.secteur = ""
         st.session_state.metier = ""
-        
-        # Restaurer les données utilisateur
-        st.session_state.user_data = {
-            'email': email,
-            'opt_in': opt_in,
-            'nom': nom,
-            'niveau_etudes': niveau_etudes,
-            'experience': experience
-        }
+        st.session_state.user_data['metier'] = ""
         
         # Retour à la page de sélection de métier
         change_page("metier")
