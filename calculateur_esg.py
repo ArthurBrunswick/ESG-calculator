@@ -100,14 +100,25 @@ def load_data():
     try:
         file_path = 'data/IED _ esg_calculator data.xlsx'
         
-        # Charger seulement les feuilles nécessaires
+        # Charger toutes les feuilles nécessaires
         df_salaire = pd.read_excel(file_path, sheet_name='salaire')
         df_competences = pd.read_excel(file_path, sheet_name='competences_cles')
+        
+        # Charger les feuilles supplémentaires pour enrichir les résultats
+        try:
+            df_formations = pd.read_excel(file_path, sheet_name='formations_IED')
+            df_tendances = pd.read_excel(file_path, sheet_name='tendances_marche')
+        except Exception:
+            # Si les feuilles supplémentaires ne sont pas disponibles, utiliser des DataFrames vides
+            df_formations = pd.DataFrame()
+            df_tendances = pd.DataFrame()
         
         # Stocker les données dans l'état de la session
         st.session_state.data = {
             'salaire': df_salaire,
-            'competences': df_competences
+            'competences': df_competences,
+            'formations': df_formations,
+            'tendances': df_tendances
         }
         st.session_state.data_loaded = True
         return st.session_state.data
@@ -115,15 +126,21 @@ def load_data():
         st.error(f"Erreur lors du chargement des données: {str(e)}")
         return {
             'salaire': pd.DataFrame(),
-            'competences': pd.DataFrame()
+            'competences': pd.DataFrame(),
+            'formations': pd.DataFrame(),
+            'tendances': pd.DataFrame()
         }
 
 def get_metiers_par_secteur(df_salaire):
     """Retourne un dictionnaire des métiers par secteur."""
     metiers_par_secteur = {}
     
-    for secteur in df_salaire['Secteur'].unique():
-        metiers_dans_secteur = df_salaire[df_salaire['Secteur'] == secteur]['Métier'].unique().tolist()
+    # Trier les secteurs par ordre alphabétique pour une présentation cohérente
+    secteurs = sorted(df_salaire['Secteur'].unique())
+    
+    for secteur in secteurs:
+        # Trier les métiers par ordre alphabétique dans chaque secteur
+        metiers_dans_secteur = sorted(df_salaire[df_salaire['Secteur'] == secteur]['Métier'].unique().tolist())
         metiers_par_secteur[secteur] = metiers_dans_secteur
     
     return metiers_par_secteur
@@ -162,6 +179,19 @@ def get_competences_par_metier(df_competences, metier):
     
     # Si aucun format ne correspond, retourner un DataFrame vide
     return pd.DataFrame(columns=['Compétence', 'Importance'])
+
+def get_formations_par_metier(df_formations, metier):
+    """Retourne les formations recommandées pour un métier donné."""
+    if df_formations.empty or 'Métier' not in df_formations.columns:
+        return pd.DataFrame()
+    
+    # Filtrer pour le métier spécifique
+    df_filtered = df_formations[df_formations['Métier'] == metier]
+    
+    if df_filtered.empty:
+        return pd.DataFrame()
+    
+    return df_filtered
 
 # ----- VISUALISATIONS SIMPLIFIÉES -----
 def create_salary_chart(df_filtered):
@@ -377,25 +407,46 @@ def page_metier():
         st.error("Impossible de charger les secteurs et métiers. Veuillez réessayer plus tard.")
         return
     
-    # Formulaire simplifié
-    with st.form(key="metier_form"):
-        # Sélection du secteur
-        secteur_options = list(metiers_par_secteur.keys())
-        secteur_index = 0
-        
-        if st.session_state.secteur in secteur_options:
-            secteur_index = secteur_options.index(st.session_state.secteur)
-        
-        secteur = st.selectbox(
-            "Secteur d'activité",
-            options=secteur_options,
-            index=secteur_index
-        )
+    # Afficher le nombre total de métiers disponibles
+    total_metiers = sum(len(metiers) for metiers in metiers_par_secteur.values())
+    st.info(f"🌱 {total_metiers} métiers ESG disponibles dans {len(metiers_par_secteur)} secteurs")
     
+    # Sélection du secteur EN DEHORS du formulaire pour mise à jour immédiate
+    secteur_options = list(metiers_par_secteur.keys())
+    
+    # Définir une fonction de callback pour le changement de secteur
+    def on_secteur_change():
+        # Cette fonction est appelée automatiquement quand le secteur change
+        pass
+    
+    # Vérifier si le secteur est dans les options et définir l'index 
+    if 'secteur' not in st.session_state or st.session_state.secteur not in secteur_options:
+        secteur_index = 0  # Premier secteur par défaut
+    else:
+        secteur_index = secteur_options.index(st.session_state.secteur)
+    
+    # Utiliser on_change pour forcer le rechargement quand le secteur change
+    secteur = st.selectbox(
+        "Secteur d'activité",
+        options=secteur_options,
+        index=secteur_index,
+        key="secteur_selectbox",
+        on_change=on_secteur_change
+    )
+    
+    # Récupérer le secteur sélectionné depuis la session state
+    secteur = st.session_state.secteur_selectbox
+    
+    # Ajouter une indication du nombre de métiers dans ce secteur
+    st.caption(f"{len(metiers_par_secteur[secteur])} métiers disponibles dans le secteur '{secteur}'")
+    
+    # Formulaire simplifié (uniquement pour le métier)
+    with st.form(key="metier_form"):
         # Sélection du métier en fonction du secteur choisi
         metier_options = metiers_par_secteur[secteur]
         metier_index = 0
         
+        # Vérifier si le métier actuel est dans les options du secteur sélectionné
         if st.session_state.metier in metier_options:
             metier_index = metier_options.index(st.session_state.metier)
         
@@ -409,9 +460,9 @@ def page_metier():
         submit = st.form_submit_button("Voir les perspectives", use_container_width=True)
         
         if submit:
-            # Mettre à jour les données de session
-            st.session_state.secteur = secteur
+            # Mettre à jour les données de session pour le métier et le secteur
             st.session_state.metier = metier
+            st.session_state.secteur = secteur  # S'assurer que le secteur est bien enregistré
             st.session_state.user_data['metier'] = metier
             
             # Passer à la page suivante
@@ -433,16 +484,34 @@ def page_apercu():
     # Charger les données
     data_dict = load_data()
     df_salaire = data_dict['salaire']
+    df_competences = data_dict['competences']
     metier = st.session_state.metier
+    secteur = st.session_state.secteur
     
-    # Afficher un aperçu des résultats
+    # Afficher des informations de contexte
     st.markdown(f"### {metier}")
+    st.caption(f"Secteur: {secteur}")
     
+    # Récupérer les données spécifiques au métier
     df_salaire_filtered = df_salaire[df_salaire['Métier'] == metier]
     if not df_salaire_filtered.empty:
+        # Afficher une brève description si disponible
+        if 'Description' in df_salaire_filtered.columns:
+            description = df_salaire_filtered['Description'].iloc[0]
+            if pd.notna(description):
+                st.markdown(f"**Description:** {description[:200]}..." if len(description) > 200 else f"**Description:** {description}")
+        
         # Afficher un graphique simplifié
         fig = create_salary_chart(df_salaire_filtered)
         st.pyplot(fig)
+        
+        # Afficher toutes les compétences clés disponibles
+        competences = get_competences_par_metier(df_competences, metier)
+        if not competences.empty:
+            st.markdown("### Principales compétences requises")
+            # Afficher toutes les compétences
+            for _, row in competences.iterrows():
+                st.markdown(f"• {row['Compétence']}")
     
     st.markdown("---")
     
@@ -472,7 +541,7 @@ def page_email():
         change_page("apercu")
 
 def page_resultats():
-    """Affiche la page des résultats simplifiée."""
+    """Affiche la page des résultats enrichie avec plus d'informations."""
     display_header("resultats")
     
     # Vérifier que les coordonnées ont été soumises
@@ -492,52 +561,187 @@ def page_resultats():
     data_dict = load_data()
     df_salaire = data_dict['salaire']
     df_competences = data_dict['competences']
+    df_formations = data_dict.get('formations', pd.DataFrame())
+    df_tendances = data_dict.get('tendances', pd.DataFrame())
     metier = st.session_state.metier
+    secteur = st.session_state.secteur
     
     # Filtrer les données pour le métier sélectionné
     df_salaire_filtered = df_salaire[df_salaire['Métier'] == metier]
     df_competences_filtered = get_competences_par_metier(df_competences, metier)
+    df_formations_filtered = get_formations_par_metier(df_formations, metier) if not df_formations.empty else pd.DataFrame()
     
-    # Afficher les informations du métier
-    st.markdown(f"### {metier}")
+    # Titre de la page avec le métier et le secteur
+    st.markdown(f"# {metier}")
+    st.caption(f"Secteur: **{secteur}**")
+    st.divider()
     
-    # Description du métier
+    # Description du métier (section améliorée)
+    st.markdown("## 📋 Description du métier")
     if 'Description' in df_salaire_filtered.columns and not df_salaire_filtered.empty:
         description = df_salaire_filtered['Description'].iloc[0]
         if pd.notna(description):
-            st.info(description)
+            st.markdown(description)
+        else:
+            st.info(f"Aucune description disponible pour le métier de {metier}.")
+    else:
+        st.info(f"Aucune description disponible pour le métier de {metier}.")
     
-    # Salaires
-    st.markdown("### Perspectives salariales")
+    st.divider()
+    
+    # Salaires (section améliorée avec colonnes pour une meilleure organisation)
+    st.markdown("## 💰 Perspectives salariales")
     if not df_salaire_filtered.empty:
-        # Graphique des salaires
-        fig_salary = create_salary_chart(df_salaire_filtered)
-        st.pyplot(fig_salary)
+        # Utilisation de colonnes pour organiser les informations
+        col1, col2 = st.columns([3, 2])
         
-        # Tableau des salaires
-        st.dataframe(
-            df_salaire_filtered[['Expérience', 'Salaire_Min', 'Salaire_Max', 'Salaire_Moyen']].rename(
-                columns={
-                    'Salaire_Min': 'Minimum (€)',
-                    'Salaire_Max': 'Maximum (€)',
-                    'Salaire_Moyen': 'Moyen (€)'
-                }
-            ),
-            hide_index=True,
-            use_container_width=True
-        )
+        with col1:
+            # Graphique des salaires
+            fig_salary = create_salary_chart(df_salaire_filtered)
+            st.pyplot(fig_salary)
+        
+        with col2:
+            # Afficher un tableau de salaires avec mise en forme
+            st.markdown("### Détail des salaires")
+            st.dataframe(
+                df_salaire_filtered[['Expérience', 'Salaire_Min', 'Salaire_Max', 'Salaire_Moyen']].rename(
+                    columns={
+                        'Salaire_Min': 'Minimum (€)',
+                        'Salaire_Max': 'Maximum (€)',
+                        'Salaire_Moyen': 'Moyen (€)'
+                    }
+                ),
+                hide_index=True,
+                use_container_width=True
+            )
+            
+            # Ajouter des informations supplémentaires
+            if 'Croissance_Salaire' in df_salaire_filtered.columns:
+                croissance = df_salaire_filtered['Croissance_Salaire'].iloc[0]
+                if pd.notna(croissance):
+                    st.metric("Croissance annuelle moyenne", f"{croissance}%")
     
-    # Compétences
-    st.markdown("### Compétences clés")
+    st.divider()
+    
+    # Compétences clés (section améliorée)
+    st.markdown("## 🔑 Compétences clés")
     if not df_competences_filtered.empty:
-        # Afficher simplement la liste des compétences
-        for i, row in df_competences_filtered.head(5).iterrows():
-            st.markdown(f"- **{row['Compétence']}**")
+        # Utiliser des colonnes pour organiser les compétences
+        competences_cols = st.columns(2)
+        
+        # Préparer la liste complète des compétences
+        competences_list = df_competences_filtered.sort_values(by='Importance', ascending=False)
+        
+        # Utiliser une boucle pour ajouter les compétences aux colonnes
+        for i, row in competences_list.iterrows():
+            col_index = i % 2  # Alterner entre les deux colonnes
+            with competences_cols[col_index]:
+                importance = row['Importance']
+                emoji = "🔴" if importance >= 4 else "🟠" if importance >= 2 else "🟡"
+                st.markdown(f"{emoji} **{row['Compétence']}**")
     else:
         st.info("Aucune information sur les compétences n'est disponible pour ce métier.")
     
+    st.divider()
+    
+    # Formations recommandées (nouvelle section)
+    st.markdown("## 🎓 Formations recommandées")
+    if not df_formations_filtered.empty and 'Formation' in df_formations_filtered.columns:
+        # Créer un conteneur pour les formations
+        formations_container = st.container()
+        
+        with formations_container:
+            # Afficher chaque formation dans un expander avec détails
+            for i, row in df_formations_filtered.iterrows():
+                formation_name = row.get('Formation', f"Formation {i+1}")
+                with st.expander(formation_name):
+                    # Afficher les détails de la formation si disponibles
+                    if 'Description' in row:
+                        st.markdown(row['Description'])
+                    if 'Durée' in row:
+                        st.markdown(f"**Durée**: {row['Durée']}")
+                    if 'Niveau' in row:
+                        st.markdown(f"**Niveau**: {row['Niveau']}")
+                    if 'Prix' in row:
+                        st.markdown(f"**Prix**: {row['Prix']}€")
+                    if 'Lien' in row:
+                        st.markdown(f"[En savoir plus]({row['Lien']})")
+    else:
+        st.info("Aucune formation spécifique n'est disponible pour ce métier.")
+        st.markdown("""
+        L'Institut d'Économie Durable propose néanmoins plusieurs formations généralistes 
+        qui peuvent vous aider à développer vos compétences dans le domaine ESG.
+        """)
+    
+    # Tendances du marché (si disponibles)
+    if not df_tendances.empty and 'Métier' in df_tendances.columns:
+        df_tendances_filtered = df_tendances[df_tendances['Métier'] == metier]
+        
+        if not df_tendances_filtered.empty:
+            st.divider()
+            st.markdown("## 📈 Tendances du marché")
+            
+            # Afficher les tendances selon les colonnes disponibles
+            if 'Tendance_Globale' in df_tendances_filtered.columns:
+                tendance = df_tendances_filtered['Tendance_Globale'].iloc[0]
+                if pd.notna(tendance):
+                    st.markdown(f"**Tendance globale**: {tendance}")
+            
+            if 'Perspectives' in df_tendances_filtered.columns:
+                perspectives = df_tendances_filtered['Perspectives'].iloc[0]
+                if pd.notna(perspectives):
+                    st.markdown(f"**Perspectives d'évolution**: {perspectives}")
+    
+    # Métiers similaires (nouvelle section)
+    st.divider()
+    st.markdown("## 🔄 Métiers similaires")
+    
+    # Filtrer les métiers du même secteur (sauf le métier actuel)
+    metiers_meme_secteur = df_salaire[(df_salaire['Secteur'] == secteur) & (df_salaire['Métier'] != metier)]['Métier'].unique()
+    
+    if len(metiers_meme_secteur) > 0:
+        # Afficher jusqu'à 3 métiers similaires dans le même secteur
+        st.markdown(f"### Dans le secteur {secteur}")
+        cols_secteur = st.columns(min(3, len(metiers_meme_secteur)))
+        
+        for i, metier_similaire in enumerate(metiers_meme_secteur[:3]):
+            with cols_secteur[i]:
+                st.markdown(f"**{metier_similaire}**")
+                # Ajouter un bouton pour explorer ce métier
+                if st.button(f"Explorer", key=f"btn_sect_{i}"):
+                    # Mettre à jour le métier sélectionné
+                    st.session_state.metier = metier_similaire
+                    st.session_state.user_data['metier'] = metier_similaire
+                    # Recharger la page
+                    st.rerun()
+    
+    # Suggérer d'autres secteurs avec des métiers intéressants
+    autres_secteurs = [s for s in df_salaire['Secteur'].unique() if s != secteur]
+    if autres_secteurs:
+        st.markdown("### Explorer d'autres secteurs")
+        # Sélectionner jusqu'à 4 autres secteurs
+        autres_secteurs_sample = autres_secteurs[:min(4, len(autres_secteurs))]
+        for autre_secteur in autres_secteurs_sample:
+            # Créer un expander pour chaque secteur
+            with st.expander(autre_secteur):
+                # Trouver des métiers dans ce secteur
+                metiers_autre_secteur = df_salaire[df_salaire['Secteur'] == autre_secteur]['Métier'].unique()
+                # Afficher jusqu'à 3 métiers pour ce secteur
+                for metier_autre in metiers_autre_secteur[:3]:
+                    col1, col2 = st.columns([4,1])
+                    with col1:
+                        st.markdown(f"• **{metier_autre}**")
+                    with col2:
+                        if st.button("Voir", key=f"btn_{autre_secteur}_{metier_autre}".replace(" ", "_")):
+                            # Mettre à jour le secteur et le métier sélectionnés
+                            st.session_state.secteur = autre_secteur
+                            st.session_state.metier = metier_autre
+                            st.session_state.user_data['metier'] = metier_autre
+                            # Recharger la page
+                            st.rerun()
+    
     # CTA finale
-    st.markdown("---")
+    st.divider()
     st.markdown("### Vous souhaitez en savoir plus ?")
     
     st.markdown("""
@@ -545,18 +749,11 @@ def page_resultats():
     Notre équipe vous contactera prochainement pour vous présenter nos programmes.
     """)
     
-    # Option de retour à l'accueil
-    if st.button("Découvrir d'autres métiers", use_container_width=True):
-        # Conserver toutes les données utilisateur mais réinitialiser uniquement le métier
-        current_user_data = st.session_state.user_data.copy()
-        
-        # Réinitialiser la sélection de métier
-        st.session_state.secteur = ""
-        st.session_state.metier = ""
-        st.session_state.user_data['metier'] = ""
-        
-        # Retour à la page de sélection de métier
-        change_page("metier")
+    # Ajout d'un CTA final sans option de retour
+    st.markdown("""
+    Contactez-nous pour plus d'informations sur nos programmes de formation
+    et comment développer votre carrière dans le secteur ESG.
+    """)
 
 # ----- FONCTION PRINCIPALE -----
 def main():
