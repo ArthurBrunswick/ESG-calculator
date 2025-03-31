@@ -6,6 +6,10 @@ Application Streamlit minimaliste pour l'exploration des carrières ESG
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import requests
+import json
+from hubspot import HubSpot
+from hubspot.crm.contacts import SimplePublicObjectInputForCreate, SimplePublicObjectInput
 
 # ----- CONFIGURATION DE L'APPLICATION -----
 def configure_app():
@@ -100,7 +104,8 @@ def initialize_session_state():
             'niveau_etudes': "",
             'experience': "",
             'opt_in': False,
-            'metier': ""          # Stocke aussi le métier dans user_data pour cohérence
+            'metier': "",         # Stocke aussi le métier dans user_data pour cohérence
+            'hubspot_submitted': False  # Indicateur d'envoi à Hubspot
         },
         'secteur': "",            # Secteur sélectionné
         'metier': "",             # Métier sélectionné
@@ -124,6 +129,72 @@ def change_page(page_name):
     """Change la page actuelle et force le rechargement."""
     st.session_state.page = page_name
     st.rerun()
+
+# ----- INTÉGRATION HUBSPOT -----
+def send_data_to_hubspot(user_data):
+    """
+    Envoie les données utilisateur à Hubspot via l'API.
+    
+    Args:
+        user_data: Dictionnaire contenant les données de l'utilisateur
+    
+    Returns:
+        bool: True si l'envoi est réussi, sinon lève une exception
+    """
+    try:
+        # Récupérer la clé API depuis les secrets
+        api_key = st.secrets["hubspot"]["api_key"]
+        
+        # Initialiser le client Hubspot avec token d'accès
+        client = HubSpot()
+        client.access_token = api_key
+        
+        # Préparer les propriétés pour l'API Hubspot
+        properties = {
+            "firstname": user_data.get('prenom', ''),
+            "lastname": user_data.get('nom', ''), 
+            "email": user_data.get('email', ''),
+            "phone": user_data.get('telephone', ''),
+            "quelle_est_votre_situation_actuelle__": user_data.get('niveau_etudes', ''),
+            "hs_marketable_status": True  # Toujours à True puisque l'opt-in est obligatoire
+        }
+        
+        # Les propriétés additionnelles ont été supprimées car elles n'existent pas dans Hubspot
+        
+        # Rechercher si le contact existe déjà
+        existing_contact = None
+        try:
+            # Utiliser l'API pour rechercher par email
+            filter_groups = [{"filters": [{"propertyName": "email", "operator": "EQ", "value": user_data.get('email')}]}]
+            public_object_search_request = {"filterGroups": filter_groups}
+            contact_search_results = client.crm.contacts.search_api.do_search(public_object_search_request=public_object_search_request)
+            
+            # Vérifier s'il y a des résultats
+            if contact_search_results.results and len(contact_search_results.results) > 0:
+                existing_contact = contact_search_results.results[0]
+        except Exception as search_error:
+            # Si la recherche échoue, continuer pour créer un nouveau contact
+            print(f"Erreur de recherche contact: {str(search_error)}")
+            pass
+
+        # Mettre à jour le contact existant ou en créer un nouveau
+        if existing_contact:
+            # Mettre à jour le contact existant
+            contact_id = existing_contact.id
+            simple_public_object_input = SimplePublicObjectInput(properties=properties)
+            api_response = client.crm.contacts.basic_api.update(contact_id=contact_id, simple_public_object_input=simple_public_object_input)
+            print(f"Contact mis à jour dans Hubspot: {contact_id}")
+        else:
+            # Créer un nouveau contact - utiliser la classe appropriée pour la création
+            simple_public_object_input_for_create = SimplePublicObjectInputForCreate(properties=properties)
+            api_response = client.crm.contacts.basic_api.create(simple_public_object_input_for_create=simple_public_object_input_for_create)
+            print(f"Nouveau contact créé dans Hubspot: {api_response.id}")
+        
+        return True
+    except Exception as e:
+        # Journaliser l'erreur mais la remonter pour gestion
+        print(f"Erreur lors de l'envoi des données à Hubspot: {str(e)}")
+        raise e
 
 # ----- GESTION DES DONNÉES -----
 def load_data():
@@ -373,9 +444,22 @@ def display_email_form():
             st.session_state.user_data['email'] = email
             st.session_state.user_data['telephone'] = telephone
             st.session_state.user_data['opt_in'] = opt_in
+            
+            # Envoyer les données à Hubspot seulement si ce n'est pas déjà fait
+            if not st.session_state.user_data.get('hubspot_submitted', False):
+                try:
+                    send_data_to_hubspot(st.session_state.user_data)
+                    # Marquer comme soumis pour éviter les doublons
+                    st.session_state.user_data['hubspot_submitted'] = True
+                    st.success("Vos informations ont été enregistrées avec succès.")
+                except Exception as e:
+                    st.error("Une erreur est survenue lors de l'enregistrement de vos données.")
+                    print(f"Erreur Hubspot: {str(e)}")
+            
+            # Marquer comme soumis dans tous les cas pour continuer la navigation
             st.session_state.email_submitted = True
             
-            # Succès et redirection
+            # Redirection
             st.success("Merci ! Vous allez accéder aux résultats complets.")
             change_page("resultats")
             return True
@@ -467,10 +551,10 @@ def page_profil():
         nom = st.text_input("Votre nom", value=st.session_state.user_data.get('nom', ''))
         
         niveau_etudes = st.selectbox(
-            "Quel est votre niveau d'études ?",
-            options=["", "Bac", "Bac+2 / Bac+3", "Bac+4 / Bac+5", "Bac+6 et plus"],
+            "Quelle est votre situation actuelle ?",
+            options=["", "Etudiant en cycle Licence (Bac+1 à Bac+3)", "Etudiant en cycle Master (Bac+4 ou Bac+5", "Actif (professionnel, en recherche d'emploi)"],
             index=0 if not st.session_state.user_data.get('niveau_etudes') else 
-                  ["", "Bac", "Bac+2 / Bac+3", "Bac+4 / Bac+5", "Bac+6 et plus"].index(st.session_state.user_data.get('niveau_etudes'))
+                  ["", "Etudiant en cycle Licence (Bac+1 à Bac+3)", "Etudiant en cycle Master (Bac+4 ou Bac+5", "Actif (professionnel, en recherche d'emploi)"].index(st.session_state.user_data.get('niveau_etudes'))
         )
         
         experience = st.radio(
