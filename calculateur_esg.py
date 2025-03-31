@@ -59,6 +59,7 @@ def configure_app():
         padding: 20px;
         border-radius: 10px;
         background-color: white;
+        color: #333333;
         border-left: 5px solid {colors['primary']};
         margin: 20px 0;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -67,12 +68,21 @@ def configure_app():
         padding: 15px;
         border-radius: 10px;
         background-color: white;
+        color: #333333;
         margin-bottom: 15px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border-top: 3px solid {colors['secondary']};
     }}
     h1, h2, h3 {{
         color: {colors['primary']};
+    }}
+    /* Fix pour le mode dark */
+    .dark .highlight-box, .dark .feature-card {{
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #FFFFFF;
+    }}
+    [data-testid="stMarkdownContainer"] {{
+        color: currentColor;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -215,23 +225,26 @@ def get_formations_par_metier(df_formations, metier):
     if df_filtered.empty:
         return pd.DataFrame()
     
+    # Créer une copie explicite du DataFrame pour éviter les SettingWithCopyWarning
+    df_result = df_filtered.copy()
+    
     # Ajouter une colonne Formation si elle n'existe pas déjà
-    if 'Formation' not in df_filtered.columns:
+    if 'Formation' not in df_result.columns:
         # Utiliser Programme_Principal comme Formation si disponible
-        if 'Programme_Principal' in df_filtered.columns:
-            df_filtered['Formation'] = df_filtered['Programme_Principal']
+        if 'Programme_Principal' in df_result.columns:
+            df_result['Formation'] = df_result['Programme_Principal']
     
     # Ajouter d'autres colonnes nécessaires pour l'affichage
-    if 'Description' not in df_filtered.columns and 'Modules_Clés' in df_filtered.columns:
-        df_filtered['Description'] = df_filtered['Modules_Clés']
+    if 'Description' not in df_result.columns and 'Modules_Clés' in df_result.columns:
+        df_result['Description'] = df_result['Modules_Clés']
     
-    if 'Durée' not in df_filtered.columns and 'Durée_Formation' in df_filtered.columns:
-        df_filtered['Durée'] = df_filtered['Durée_Formation']
+    if 'Durée' not in df_result.columns and 'Durée_Formation' in df_result.columns:
+        df_result['Durée'] = df_result['Durée_Formation']
         
-    if 'Niveau' not in df_filtered.columns and 'Prérequis' in df_filtered.columns:
-        df_filtered['Niveau'] = df_filtered['Prérequis']
+    if 'Niveau' not in df_result.columns and 'Prérequis' in df_result.columns:
+        df_result['Niveau'] = df_result['Prérequis']
     
-    return df_filtered
+    return df_result
 
 # ----- VISUALISATIONS SIMPLIFIÉES -----
 def create_salary_chart(df_filtered, small_version=False):
