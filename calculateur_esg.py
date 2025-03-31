@@ -21,10 +21,10 @@ def configure_app():
         'primary': "#0356A5",     # Bleu foncé
         'secondary': "#FFE548",   # Jaune
         'green': "#00916E",       # Vert
-        'background': "#FFFFFF"   # Fond blanc
+        'background': "#f7f7f5"   # Fond gris
     })
     
-    # CSS minimal
+    # CSS amélioré
     colors = st.session_state.colors
     st.markdown(f"""
     <style>
@@ -38,6 +38,11 @@ def configure_app():
         border-radius: 5px;
         border: none;
         padding: 10px 20px;
+        transition: all 0.3s ease;
+    }}
+    .stButton>button:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }}
     .progress-bar {{
         height: 10px;
@@ -49,6 +54,25 @@ def configure_app():
         height: 100%;
         background-color: {colors['secondary']};
         border-radius: 5px;
+    }}
+    .highlight-box {{
+        padding: 20px;
+        border-radius: 10px;
+        background-color: white;
+        border-left: 5px solid {colors['primary']};
+        margin: 20px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }}
+    .feature-card {{
+        padding: 15px;
+        border-radius: 10px;
+        background-color: white;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        border-top: 3px solid {colors['secondary']};
+    }}
+    h1, h2, h3 {{
+        color: {colors['primary']};
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -191,15 +215,41 @@ def get_formations_par_metier(df_formations, metier):
     if df_filtered.empty:
         return pd.DataFrame()
     
+    # Ajouter une colonne Formation si elle n'existe pas déjà
+    if 'Formation' not in df_filtered.columns:
+        # Utiliser Programme_Principal comme Formation si disponible
+        if 'Programme_Principal' in df_filtered.columns:
+            df_filtered['Formation'] = df_filtered['Programme_Principal']
+    
+    # Ajouter d'autres colonnes nécessaires pour l'affichage
+    if 'Description' not in df_filtered.columns and 'Modules_Clés' in df_filtered.columns:
+        df_filtered['Description'] = df_filtered['Modules_Clés']
+    
+    if 'Durée' not in df_filtered.columns and 'Durée_Formation' in df_filtered.columns:
+        df_filtered['Durée'] = df_filtered['Durée_Formation']
+        
+    if 'Niveau' not in df_filtered.columns and 'Prérequis' in df_filtered.columns:
+        df_filtered['Niveau'] = df_filtered['Prérequis']
+    
     return df_filtered
 
 # ----- VISUALISATIONS SIMPLIFIÉES -----
-def create_salary_chart(df_filtered):
-    """Crée un graphique d'évolution salariale simplifié."""
+def create_salary_chart(df_filtered, small_version=False):
+    """Crée un graphique d'évolution salariale simplifié.
+    
+    Args:
+        df_filtered: DataFrame des données filtrées
+        small_version: Si True, crée une version plus petite pour l'aperçu
+    """
     colors = st.session_state.colors
     
-    # Réduire la taille du graphique de 30%
-    fig, ax = plt.subplots(figsize=(7, 4))
+    # Choisir la taille en fonction du contexte
+    if small_version:
+        # Version compact pour l'aperçu
+        fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    else:
+        # Version normale pour les résultats détaillés
+        fig, ax = plt.subplots(figsize=(7, 4))
     
     # Créer des données pour le graphique
     experience = df_filtered['Expérience'].tolist()
@@ -218,12 +268,19 @@ def create_salary_chart(df_filtered):
     ax.set_xticks(x)
     ax.set_xticklabels(experience, fontsize=8)
     ax.grid(True, linestyle='--', alpha=0.7)
-    ax.legend(fontsize=8)
+    
+    # Réduire la taille de la légende si version compacte
+    if small_version:
+        ax.legend(fontsize=7, loc='upper left')
+    else:
+        ax.legend(fontsize=8)
     
     # Ajouter les valeurs
     for i, avg_val in enumerate(avg_salary):
+        font_size = 7 if small_version else 8
+        y_offset = 8 if small_version else 10
         ax.annotate(f"{avg_val}€", (i, avg_val), textcoords="offset points", 
-                    xytext=(0,10), ha='center', fontweight='bold', fontsize=8)
+                    xytext=(0, y_offset), ha='center', fontweight='bold', fontsize=font_size)
     
     plt.tight_layout()
     return fig
@@ -234,7 +291,8 @@ def display_header(step=None):
     col1, col2 = st.columns([1, 5])
     
     with col1:
-        st.markdown("<h3>🌱 IED</h3>", unsafe_allow_html=True)
+        # Afficher le logo IED
+        st.image("assets/logo_ied_low.png", width=150)
     
     with col2:
         st.markdown("<h1>Calculateur de Carrière ESG</h1>", unsafe_allow_html=True)
@@ -313,30 +371,73 @@ def display_email_form():
 
 # ----- PAGES DE L'APPLICATION -----
 def page_accueil():
-    """Affiche la page d'accueil simplifiée."""
+    """Affiche la page d'accueil améliorée visuellement."""
     display_header("accueil")
     
+    # Container principal avec espacement
+    st.markdown("<div style='padding: 10px;'></div>", unsafe_allow_html=True)
+    
+    # Titre principal avec style amélioré
     st.markdown("""
-    ## Découvrez votre potentiel de carrière dans l'économie durable
+    <h2 style='text-align: center; margin-bottom: 30px;'>Découvrez votre potentiel de carrière dans l'économie durable</h2>
+    """, unsafe_allow_html=True)
     
-    Bienvenue sur le calculateur de carrière de l'**Institut d'Économie Durable**. 
-    Cet outil vous permet de visualiser les perspectives salariales et d'évolution des métiers ESG.
+    # Introduction dans un bloc mis en valeur
+    st.markdown("""
+    <div class='highlight-box'>
+    <p>Bienvenue sur le calculateur de carrière de l'<strong>Institut d'Économie Durable</strong>. 
+    Cet outil vous permet de visualiser les perspectives salariales et d'évolution des métiers ESG.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    ### Les métiers ESG sont parmi les plus prometteurs
-    Avec une croissance estimée à 20% par an, ce secteur offre des opportunités diversifiées
-    pour contribuer positivement à la transition écologique.
-    """)
+    # Chiffres clés dans 3 colonnes avec animations et icônes
+    col1, col2, col3 = st.columns(3)
     
-    st.info("""
-    **Comment utiliser cet outil ?**
+    with col1:
+        st.markdown("""
+        <div class='feature-card'>
+        <h3 style='text-align: center'>🚀 +20%</h3>
+        <p style='text-align: center'>Croissance annuelle des métiers ESG</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        st.markdown("""
+        <div class='feature-card'>
+        <h3 style='text-align: center'>💼 +300</h3>
+        <p style='text-align: center'>Métiers en développement</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col3:
+        st.markdown("""
+        <div class='feature-card'>
+        <h3 style='text-align: center'>💰 50-120k€</h3>
+        <p style='text-align: center'>Fourchette salariale</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    En quelques étapes simples, vous allez :
-    1. Renseigner votre profil
-    2. Découvrir les métiers ESG qui correspondent à vos aspirations
-    3. Visualiser les perspectives salariales et compétences requises
-    4. Recevoir des recommandations personnalisées pour votre carrière
-    """)
+    # Comment utiliser l'outil avec étapes visuelles
+    st.markdown("<div style='padding: 15px;'></div>", unsafe_allow_html=True)
     
+    st.markdown("""
+    <div class='highlight-box'>
+    <h3 style='text-align: center; margin-bottom: 20px;'>Comment utiliser cet outil ?</h3>
+    
+    <p>En quelques étapes simples, vous allez :</p>
+    <ol>
+        <li><strong>Renseigner votre profil</strong> - Vos études, votre expérience</li>
+        <li><strong>Découvrir les métiers ESG</strong> qui correspondent à vos aspirations</li>
+        <li><strong>Visualiser les perspectives salariales</strong> et compétences requises</li>
+        <li><strong>Recevoir des recommandations personnalisées</strong> pour votre carrière</li>
+    </ol>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Espacement avant le bouton
+    st.markdown("<div style='padding: 20px;'></div>", unsafe_allow_html=True)
+    
+    # Bouton de démarrage plus grand
     if st.button("Commencer", use_container_width=True):
         change_page("profil")
 
@@ -501,17 +602,24 @@ def page_apercu():
             if pd.notna(description):
                 st.markdown(f"**Description:** {description[:200]}..." if len(description) > 200 else f"**Description:** {description}")
         
-        # Afficher un graphique simplifié
-        fig = create_salary_chart(df_salaire_filtered)
-        st.pyplot(fig)
+        # Créer 2 colonnes pour le graphique (70%) et les compétences (30%) côte à côte
+        col1, col2 = st.columns([7, 3])
         
-        # Afficher toutes les compétences clés disponibles
-        competences = get_competences_par_metier(df_competences, metier)
-        if not competences.empty:
-            st.markdown("### Principales compétences requises")
-            # Afficher toutes les compétences
-            for _, row in competences.iterrows():
-                st.markdown(f"• {row['Compétence']}")
+        with col1:
+            # Graphique en version normale (pas besoin de small_version ici)
+            fig = create_salary_chart(df_salaire_filtered)
+            st.pyplot(fig)
+        
+        with col2:
+            # Compétences clés
+            competences = get_competences_par_metier(df_competences, metier)
+            if not competences.empty:
+                st.markdown("### Principales compétences")
+                # Limiter à 5 compétences maximum pour l'aperçu
+                for _, row in competences.head(5).iterrows():
+                    st.markdown(f"• {row['Compétence']}")
+                if len(competences) > 5:
+                    st.caption("*Et d'autres compétences dans les résultats complets...*")
     
     st.markdown("---")
     
@@ -596,8 +704,8 @@ def page_resultats():
         col1, col2 = st.columns([3, 2])
         
         with col1:
-            # Graphique des salaires
-            fig_salary = create_salary_chart(df_salaire_filtered)
+            # Graphique des salaires avec taille normale (pas la version compacte)
+            fig_salary = create_salary_chart(df_salaire_filtered, small_version=False)
             st.pyplot(fig_salary)
         
         with col2:
@@ -644,28 +752,44 @@ def page_resultats():
     
     st.divider()
     
-    # Formations recommandées (nouvelle section)
+    # Formations recommandées (section améliorée)
     st.markdown("## 🎓 Formations recommandées")
     if not df_formations_filtered.empty and 'Formation' in df_formations_filtered.columns:
         # Créer un conteneur pour les formations
         formations_container = st.container()
         
         with formations_container:
-            # Afficher chaque formation dans un expander avec détails
+            st.markdown("Formations recommandées par l'Institut pour développer vos compétences dans ce métier :")
+            # Afficher chaque formation dans un expander avec détails et style amélioré
             for i, row in df_formations_filtered.iterrows():
                 formation_name = row.get('Formation', f"Formation {i+1}")
                 with st.expander(formation_name):
-                    # Afficher les détails de la formation si disponibles
-                    if 'Description' in row:
-                        st.markdown(row['Description'])
-                    if 'Durée' in row:
-                        st.markdown(f"**Durée**: {row['Durée']}")
-                    if 'Niveau' in row:
-                        st.markdown(f"**Niveau**: {row['Niveau']}")
-                    if 'Prix' in row:
-                        st.markdown(f"**Prix**: {row['Prix']}€")
-                    if 'Lien' in row:
-                        st.markdown(f"[En savoir plus]({row['Lien']})")
+                    # Afficher les détails de la formation avec une présentation améliorée
+                    col1, col2 = st.columns([3, 2])
+                    
+                    with col1:
+                        if 'Description' in row and pd.notna(row['Description']):
+                            st.markdown(row['Description'])
+                        else:
+                            st.markdown("*Description non disponible*")
+                    
+                    with col2:
+                        # Créer un bloc d'informations clés avec badges colorés
+                        info_html = ""
+                        
+                        if 'Durée' in row and pd.notna(row['Durée']):
+                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['primary']}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8em;'>⏱️ {row['Durée']}</span></div>"
+                        
+                        if 'Niveau' in row and pd.notna(row['Niveau']):
+                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['green']}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8em;'>🎯 Niveau {row['Niveau']}</span></div>"
+                        
+                        if 'Prix' in row and pd.notna(row['Prix']):
+                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['secondary']}; color:#333; padding:3px 8px; border-radius:10px; font-size:0.8em;'>💰 {row['Prix']}€</span></div>"
+                        
+                        st.markdown(info_html, unsafe_allow_html=True)
+                        
+                        if 'Lien' in row and pd.notna(row['Lien']):
+                            st.markdown(f"<a href='{row['Lien']}' target='_blank' style='display:inline-block; margin-top:10px; background-color:{st.session_state.colors['primary']}; color:white; padding:5px 15px; border-radius:5px; text-decoration:none; font-size:0.9em;'>En savoir plus</a>", unsafe_allow_html=True)
     else:
         st.info("Aucune formation spécifique n'est disponible pour ce métier.")
         st.markdown("""
@@ -673,7 +797,7 @@ def page_resultats():
         qui peuvent vous aider à développer vos compétences dans le domaine ESG.
         """)
     
-    # Tendances du marché (si disponibles)
+    # Tendances du marché (section améliorée)
     if not df_tendances.empty and 'Métier' in df_tendances.columns:
         df_tendances_filtered = df_tendances[df_tendances['Métier'] == metier]
         
@@ -681,16 +805,62 @@ def page_resultats():
             st.divider()
             st.markdown("## 📈 Tendances du marché")
             
-            # Afficher les tendances selon les colonnes disponibles
-            if 'Tendance_Globale' in df_tendances_filtered.columns:
-                tendance = df_tendances_filtered['Tendance_Globale'].iloc[0]
-                if pd.notna(tendance):
-                    st.markdown(f"**Tendance globale**: {tendance}")
+            # Créer un affichage plus visuel avec une mise en page en colonnes
+            col1, col2 = st.columns([2, 3])
             
-            if 'Perspectives' in df_tendances_filtered.columns:
-                perspectives = df_tendances_filtered['Perspectives'].iloc[0]
-                if pd.notna(perspectives):
-                    st.markdown(f"**Perspectives d'évolution**: {perspectives}")
+            with col1:
+                # Croissance annuelle avec indicateur visuel
+                if 'Croissance_Annuelle' in df_tendances_filtered.columns:
+                    tendance = df_tendances_filtered['Croissance_Annuelle'].iloc[0]
+                    if pd.notna(tendance):
+                        # Déterminer l'émoji selon la tendance
+                        tendance_str = str(tendance).lower()
+                        tendance_emoji = "🚀" if "hausse" in tendance_str or "forte" in tendance_str or "+" in tendance_str else "📈" if "croissance" in tendance_str or "positive" in tendance_str else "➡️" if "stable" in tendance_str else "📉" if "baisse" in tendance_str or "déclin" in tendance_str or "-" in tendance_str else "📊"
+                        
+                        # Créer un style visuel pour la tendance
+                        tendance_color = f"{st.session_state.colors['green']}" if "hausse" in tendance_str or "croissance" in tendance_str or "positive" in tendance_str or "+" in tendance_str else f"{st.session_state.colors['primary']}" if "stable" in tendance_str else "#e74c3c"
+                        
+                        st.markdown(f"""
+                        <div style='background-color: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
+                            <h4 style='margin-top: 0; color: {tendance_color};'>{tendance_emoji} Croissance annuelle</h4>
+                            <p style='font-size: 1.1em;'>{tendance}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                # Ajouter demande marché comme métrique supplémentaire
+                if 'Demande_Marché' in df_tendances_filtered.columns:
+                    demande = df_tendances_filtered['Demande_Marché'].iloc[0]
+                    if pd.notna(demande):
+                        st.markdown(f"""
+                        <div style='background-color: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-top: 15px;'>
+                            <h4 style='margin-top: 0;'>🔍 Demande du marché</h4>
+                            <p style='font-size: 1.1em;'>{demande}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            with col2:
+                # Tendance salariale et secteurs recruteurs dans un bloc
+                tendance_salariale = ""
+                if 'Salaire_Tendance' in df_tendances_filtered.columns:
+                    sal_tendance = df_tendances_filtered['Salaire_Tendance'].iloc[0]
+                    if pd.notna(sal_tendance):
+                        tendance_salariale = f"<p><strong>💰 Tendance salariale:</strong> {sal_tendance}</p>"
+                
+                secteurs_recruteurs = ""
+                if 'Secteurs_Recruteurs' in df_tendances_filtered.columns:
+                    secteurs = df_tendances_filtered['Secteurs_Recruteurs'].iloc[0]
+                    if pd.notna(secteurs):
+                        secteurs_recruteurs = f"<p><strong>🏢 Principaux secteurs recruteurs:</strong> {secteurs}</p>"
+                
+                # Afficher le bloc combiné s'il contient des données
+                if tendance_salariale or secteurs_recruteurs:
+                    st.markdown(f"""
+                    <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); height: 100%;'>
+                        <h4 style='margin-top: 0;'>🔮 Perspectives d'évolution</h4>
+                        {tendance_salariale}
+                        {secteurs_recruteurs}
+                    </div>
+                    """, unsafe_allow_html=True)
     
     # Métiers similaires (nouvelle section)
     st.divider()
