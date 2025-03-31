@@ -26,3 +26,7 @@ logs/
 
 # Fichiers Claude
 CLAUDE.md
+
+# Secrets Streamlit
+.streamlit/
+*.toml
