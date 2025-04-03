@@ -8,8 +8,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import requests
 import json
-from hubspot import HubSpot
-from hubspot.crm.contacts import SimplePublicObjectInputForCreate, SimplePublicObjectInput
+import hubspot
+from hubspot.crm.contacts import SimplePublicObjectInputForCreate, SimplePublicObjectInput, ApiException
 
 # ----- CONFIGURATION DE L'APPLICATION -----
 def configure_app():
@@ -146,8 +146,7 @@ def send_data_to_hubspot(user_data):
         api_key = st.secrets["hubspot"]["api_key"]
         
         # Initialiser le client Hubspot avec token d'accès
-        client = HubSpot()
-        client.access_token = api_key
+        client = hubspot.Client.create(access_token=api_key)
         
         # Préparer les propriétés pour l'API Hubspot
         properties = {
@@ -185,7 +184,7 @@ def send_data_to_hubspot(user_data):
             api_response = client.crm.contacts.basic_api.update(contact_id=contact_id, simple_public_object_input=simple_public_object_input)
             print(f"Contact mis à jour dans Hubspot: {contact_id}")
         else:
-            # Créer un nouveau contact - utiliser la classe appropriée pour la création
+            # Créer un nouveau contact avec SimplePublicObjectInputForCreate
             simple_public_object_input_for_create = SimplePublicObjectInputForCreate(properties=properties)
             api_response = client.crm.contacts.basic_api.create(simple_public_object_input_for_create=simple_public_object_input_for_create)
             print(f"Nouveau contact créé dans Hubspot: {api_response.id}")
