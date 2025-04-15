@@ -7,9 +7,6 @@
 - **Activer l'environnement** (macOS/Linux): `source venv/bin/activate`
 - **Vérifier le format du code**: `pycodestyle calculateur_esg.py`
 - **Linter le code**: `pylint calculateur_esg.py`
-- **Tests unitaires**: `python -m pytest tests/test_calculateur_esg.py`
-- **Tester une fonction spécifique**: `python -m pytest tests/test_calculateur_esg.py::test_nom_fonction`
-- **Rapport de couverture**: `python -m pytest --cov=. --cov-report=html`
 - **Débogage**: `streamlit run calculateur_esg.py --logger.level=debug`
 
 ## Structure des données
@@ -18,6 +15,12 @@ Le projet utilise un fichier Excel (`data/IED _ esg_calculator data.xlsx`) avec 
 - `competences_cles`: compétences requises par métier
 - `formations_IED`: formations proposées par l'institut
 - `tendances_marche`: tendances d'évolution des métiers
+
+## Structure du projet
+- **calculateur_esg.py**: application principale Streamlit 
+- **data/**: dossier contenant les fichiers de données
+- **assets/**: dossier contenant les images et ressources
+- **logs/**: dossier contenant les logs de l'application
 
 ## Conventions de code
 - **Style**: Respecter PEP 8 (lignes max 88 caractères, 4 espaces d'indentation)
