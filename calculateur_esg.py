@@ -25,6 +25,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("calculateur_esg")
 
+# Note: Le mode clair est forcé via .streamlit/config.toml pour garantir une expérience utilisateur cohérente
+
 # ----- CONFIGURATION DE L'APPLICATION -----
 def configure_app():
     """Configure l'application Streamlit avec les paramètres de base."""
@@ -33,6 +35,14 @@ def configure_app():
         page_icon="🌱",
         layout="wide"
     )
+    
+    # Forcer le mode clair directement dans le code pour tous les composants
+    st.markdown("""
+        <script>
+        // Désactiver le mode sombre et forcer le mode clair
+        localStorage.setItem('theme', 'light');
+        </script>
+        """, unsafe_allow_html=True)
     
     # Ajouter un script JavaScript pour scroller en haut de la page si nécessaire
     if st.session_state.get('scroll_to_top', False):
@@ -62,7 +72,7 @@ def configure_app():
         'background': "#f7f7f5"   # Fond gris
     })
     
-    # CSS amélioré
+    # CSS amélioré pour le mode clair uniquement
     colors = st.session_state.colors
     st.markdown(f"""
     <style>
@@ -167,16 +177,53 @@ def configure_app():
     h1, h2, h3 {{
         color: {colors['primary']} !important;
     }}
-    /* Fix pour le mode dark et GitHub */
-    .dark .highlight-box, .dark .feature-card, .dark .metier-card, .dark .tag-selector, .dark .interest-tag {{
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #FFFFFF;
-    }}
-    .dark .interest-tag.selected {{
-        background-color: rgba(3, 86, 165, 0.3);
-    }}
+    /* Forcer les couleurs du texte en mode clair pour tous les composants */
     [data-testid="stMarkdownContainer"] {{
-        color: currentColor !important;
+        color: #333333 !important;
+    }}
+    p, li, span, label, div {{
+        color: #333333 !important;
+    }}
+    /* Style spécifique pour le multiselect et ses sous-composants */
+    [data-baseweb="select"], [data-baseweb="popover"], [data-baseweb="menu"], [data-baseweb="tag"] {{
+        background-color: white !important;
+        color: #333333 !important;
+        border-color: #cccccc !important;
+    }}
+    /* Cibler spécifiquement les options du menu déroulant */
+    [role="option"], [data-baseweb="menu"] ul li, [data-baseweb="menu"] div {{
+        background-color: white !important;
+        color: #333333 !important;
+    }}
+    [role="option"]:hover {{
+        background-color: #f0f0f0 !important;
+    }}
+    /* Cibler le texte placeholder */
+    [data-baseweb="select"] div, [data-baseweb="select-value"], [data-baseweb="placeholder"] {{
+        background-color: white !important;
+        color: #333333 !important;
+    }}
+    [data-baseweb="tag"] {{
+        background-color: #f0f0f0 !important;
+    }}
+    /* Règle CSS simplifiée pour TOUS les formulaires */
+    form {{
+        background-color: white !important;
+    }}
+    
+    /* Règles pour inputs et placeholders */
+    input, textarea {{
+        background-color: white !important;
+        color: #333333 !important;
+        border-color: #CCCCCC !important;
+    }}
+    
+    ::placeholder {{
+        color: #666666 !important;
+        opacity: 1 !important;
+    }}
+    [data-baseweb="select"] input {{
+        color: #333333 !important;
     }}
     /* Force blue headers on GitHub */
     .markdown-body h1, .markdown-body h2, .markdown-body h3, 
@@ -727,7 +774,7 @@ def display_header():
         st.image("assets/logo_ied_low.png", width=150)
     
     with col2:
-        st.markdown("<h1>Calculateur de Carrière ESG</h1>", unsafe_allow_html=True)
+        st.markdown("<h1>Calculateur de Carrières ESG</h1>", unsafe_allow_html=True)
 
 def display_contact_form():
     """Affiche un formulaire de contact pour collecte des informations."""
@@ -970,7 +1017,8 @@ def page_interests():
         label="Choisissez un ou plusieurs types d'entreprises",
         options=entreprises,
         default=[],
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        placeholder="Choisissez une ou plusieurs options"
     )
     
     # Espacement avant les boutons d'action
