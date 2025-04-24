@@ -873,7 +873,7 @@ def page_accueil():
     <h2 style='text-align: center; margin-bottom: 20px;'>Découvrez les métiers ESG qui correspondent à vos intérêts</h2>
     <p style='text-align: center; font-size: 1.2em;'>Trouvez votre voie professionnelle dans l'économie durable en quelques clics</p>
     <div style='font-size: 0.75em; color: #888; text-align: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 8px;'>
-        <p style='margin: 0;'>Sources et données: Lefebvre Dalloz, Université Paris-Dauphine, ISE, Michael Page, Fab Groupe, Makesense, ESG Finance, ESG Act, Glassdoor, Data.gouv</p>
+        <p style='margin: 0;'>Sources et données: Lefebvre Dalloz, Les Echos, Birdeo, Université Paris-Dauphine, PWC, ISE, Michael Page, Fab Groupe, Makesense, Glassdoor, Deloitte, Data.gouv</p>
     </div>
     </div>
     """, unsafe_allow_html=True)
