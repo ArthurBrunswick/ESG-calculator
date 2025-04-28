@@ -31,7 +31,7 @@ logger = logging.getLogger("calculateur_esg")
 def configure_app():
     """Configure l'application Streamlit avec les paramètres de base."""
     st.set_page_config(
-        page_title="Calculateur ESG - Institut d'Économie Durable",
+        page_title="Calculateur de carrières à impact - Institut d'Économie Durable",
         page_icon="🌱",
         layout="wide"
     )
@@ -774,7 +774,7 @@ def display_header():
         st.image("assets/logo_ied_low.png", width=150)
     
     with col2:
-        st.markdown("<h1>Calculateur de Carrières ESG</h1>", unsafe_allow_html=True)
+        st.markdown("<h1>Calculateur de Carrières à impact</h1>", unsafe_allow_html=True)
 
 def display_contact_form():
     """Affiche un formulaire de contact pour collecte des informations."""
@@ -870,7 +870,7 @@ def page_accueil():
     # Introduction avec mise en valeur
     st.markdown("""
     <div class='highlight-box'>
-    <h2 style='text-align: center; margin-bottom: 20px;'>Découvrez les métiers ESG qui correspondent à vos intérêts</h2>
+    <h2 style='text-align: center; margin-bottom: 20px;'>Découvrez les métiers à impact qui correspondent à vos intérêts</h2>
     <p style='text-align: center; font-size: 1.2em;'>Trouvez votre voie professionnelle dans l'économie durable en quelques clics</p>
     <div style='font-size: 0.75em; color: #888; text-align: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 8px;'>
         <p style='margin: 0;'>Sources et données: Lefebvre Dalloz, Les Echos, Birdeo, Université Paris-Dauphine, PWC, ISE, Michael Page, Fab Groupe, Makesense, Glassdoor, Deloitte, Data.gouv</p>
@@ -919,7 +919,7 @@ def page_interests():
     # Titre principal avec style amélioré
     st.markdown("""
     <div style='padding: 20px; background-color: white; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
-        <h2 style='text-align: center; color: #0356A5;'>Découvrez les métiers ESG qui correspondent à votre profil</h2>
+        <h2 style='text-align: center; color: #0356A5;'>Découvrez les métiers à impact qui correspondent à votre profil</h2>
         <p style='text-align: center; font-size: 1.1em;'>Quelques clics pour trouver votre voie dans l'économie durable</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1082,12 +1082,12 @@ def page_resultats():
     # En-tête de la page
     st.markdown("""
     <div class='highlight-box'>
-    <h2 style='text-align: center;'>Voici les métiers ESG qui vous correspondent</h2>
+    <h2 style='text-align: center;'>Voici les métiers à impact qui vous correspondent</h2>
     </div>
     """, unsafe_allow_html=True)
     
     # Afficher le nombre de métiers trouvés
-    st.markdown(f"### Top 3 des métiers ESG basés sur vos intérêts")
+    st.markdown(f"### Top 3 des métiers à impact basés sur vos intérêts")
     st.markdown(f"**Vos domaines sélectionnés :** *{', '.join(st.session_state.selected_tags)}*")
     
     # Afficher les 3 premiers métiers
@@ -1573,7 +1573,7 @@ def page_metier_detail():
         # CTA finale
         st.markdown("### Vous souhaitez en savoir plus ?")
         st.markdown("""
-        L'Institut d'Économie Durable propose des formations adaptées pour développer votre carrière ESG.
+        L'Institut d'Économie Durable propose des formations adaptées pour développer votre carrière à impact.
         Notre équipe vous contactera prochainement pour vous présenter nos programmes.
         Visitez le site de l'IED pour plus d'informations : www.ied-paris.fr
         """)
