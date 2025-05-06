@@ -766,15 +766,9 @@ def create_salary_chart(df_filtered, small_version=False):
 
 # ----- COMPOSANTS D'INTERFACE -----
 def display_header():
-    """Affiche l'en-tête avec le logo."""
-    col1, col2 = st.columns([1, 5])
-    
-    with col1:
-        # Afficher le logo IED
-        st.image("assets/logo_ied_low.png", width=150)
-    
-    with col2:
-        st.markdown("<h1>Calculateur de Carrières à impact</h1>", unsafe_allow_html=True)
+    """Affiche l'en-tête sans logo."""
+    # Utiliser une seule colonne pour le titre, centré
+    st.markdown("<h1 style='text-align: center;'>Calculateur de Carrières à impact</h1>", unsafe_allow_html=True)
 
 def display_contact_form():
     """Affiche un formulaire de contact pour collecte des informations."""
