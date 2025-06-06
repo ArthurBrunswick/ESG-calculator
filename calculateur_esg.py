@@ -72,16 +72,32 @@ def configure_app():
         'background': "#f7f7f5"   # Fond gris
     })
     
-    # CSS amélioré pour le mode clair uniquement
+    # CSS amélioré pour forcer le mode clair sur TOUS les éléments
     colors = st.session_state.colors
     st.markdown(f"""
     <style>
-    .main {{
-        background-color: {colors['background']};
+    /* FORÇAGE GLOBAL DU MODE CLAIR */
+    :root {{
+        color-scheme: light !important;
     }}
+    
+    /* Forcer le fond principal en mode clair */
+    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
+        background-color: {colors['background']} !important;
+        color: #333333 !important;
+    }}
+    
+    /* Forcer TOUS les conteneurs Streamlit en mode clair */
+    .stApp > *, .main > *, section[data-testid="stSidebar"], 
+    .element-container, .stMarkdown, .stAlert, div[data-testid="column"] {{
+        background-color: transparent !important;
+        color: #333333 !important;
+    }}
+    
+    /* Styles existants pour les composants custom */
     .stButton>button {{
-        background-color: {colors['secondary']};
-        color: #003366;
+        background-color: {colors['secondary']} !important;
+        color: #003366 !important;
         font-weight: bold;
         border-radius: 5px;
         border: none;
@@ -106,26 +122,33 @@ def configure_app():
     .highlight-box {{
         padding: 20px;
         border-radius: 10px;
-        background-color: white;
-        color: #333333;
+        background-color: white !important;
+        color: #333333 !important;
         border-left: 5px solid {colors['primary']};
         margin: 20px 0;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }}
+    .highlight-box * {{
+        color: #333333 !important;
+    }}
     .feature-card {{
         padding: 15px;
         border-radius: 10px;
-        background-color: white;
-        color: #333333;
+        background-color: white !important;
+        color: #333333 !important;
         margin-bottom: 15px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border-top: 3px solid {colors['secondary']};
+    }}
+    .feature-card * {{
+        color: #333333 !important;
     }}
     .tag-selector {{
         display: inline-block;
         margin: 5px;
         padding: 8px 15px;
-        background-color: white;
+        background-color: white !important;
+        color: #333333 !important;
         border: 1px solid #ddd;
         border-radius: 20px;
         cursor: pointer;
@@ -135,12 +158,12 @@ def configure_app():
         border-color: {colors['primary']};
     }}
     .tag-selected {{
-        background-color: {colors['primary']};
-        color: white;
+        background-color: {colors['primary']} !important;
+        color: white !important;
         border-color: {colors['primary']};
     }}
     div[data-testid="stCheckbox"] {{
-        background-color: white;
+        background-color: white !important;
         border-radius: 8px;
         padding: 2px 10px;
         margin: 4px;
@@ -152,80 +175,149 @@ def configure_app():
         border-color: {colors['primary']};
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }}
-    div[data-testid="stCheckbox"] > label > div[data-testid="stMarkdownContainer"] {{
-        font-size: 15px;
+    div[data-testid="stCheckbox"] label {{
+        color: #333333 !important;
     }}
     /* Pour les cases cochées */
     div[data-testid="stCheckbox"] label:has(input:checked) {{
         font-weight: 600;
-        color: {colors['primary']};
+        color: {colors['primary']} !important;
     }}
     .metier-card {{
         padding: 15px;
         border-radius: 10px;
-        background-color: white;
+        background-color: white !important;
+        color: #333333 !important;
         margin-bottom: 15px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border-left: 3px solid {colors['primary']};
         cursor: pointer;
         transition: all 0.2s;
     }}
+    .metier-card * {{
+        color: #333333 !important;
+    }}
     .metier-card:hover {{
         transform: translateY(-2px);
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }}
-    h1, h2, h3 {{
+    
+    /* Headers avec couleur primaire */
+    h1, h2, h3, h4, h5, h6 {{
         color: {colors['primary']} !important;
     }}
-    /* Forcer les couleurs du texte en mode clair pour tous les composants */
-    [data-testid="stMarkdownContainer"] {{
+    
+    /* Forcer les couleurs du texte en mode clair pour TOUS les composants Streamlit */
+    [data-testid="stMarkdownContainer"], [data-testid="stText"] {{
+        color: #333333 !important;
+        background-color: transparent !important;
+    }}
+    
+    /* Forcer le texte dans tous les éléments génériques */
+    p, li, span, label, div, td, th {{
         color: #333333 !important;
     }}
-    p, li, span, label, div {{
-        color: #333333 !important;
-    }}
-    /* Style spécifique pour le multiselect et ses sous-composants */
-    [data-baseweb="select"], [data-baseweb="popover"], [data-baseweb="menu"], [data-baseweb="tag"] {{
+    
+    /* Sélecteurs et dropdowns */
+    [data-baseweb="select"], [data-baseweb="popover"], [data-baseweb="menu"], 
+    [data-baseweb="tag"], [data-baseweb="select-dropdown"] {{
         background-color: white !important;
         color: #333333 !important;
         border-color: #cccccc !important;
     }}
-    /* Cibler spécifiquement les options du menu déroulant */
+    
+    /* Options des menus déroulants */
     [role="option"], [data-baseweb="menu"] ul li, [data-baseweb="menu"] div {{
         background-color: white !important;
         color: #333333 !important;
     }}
     [role="option"]:hover {{
         background-color: #f0f0f0 !important;
+        color: #333333 !important;
     }}
-    /* Cibler le texte placeholder */
-    [data-baseweb="select"] div, [data-baseweb="select-value"], [data-baseweb="placeholder"] {{
+    
+    /* Placeholders et valeurs sélectionnées */
+    [data-baseweb="select"] div, [data-baseweb="select-value"], 
+    [data-baseweb="placeholder"], [data-baseweb="select-value-container"] {{
         background-color: white !important;
         color: #333333 !important;
     }}
+    
+    /* Tags dans multiselect */
     [data-baseweb="tag"] {{
         background-color: #f0f0f0 !important;
+        color: #333333 !important;
     }}
-    /* Règle CSS simplifiée pour TOUS les formulaires */
+    
+    /* Formulaires et inputs */
     form {{
         background-color: white !important;
     }}
     
-    /* Règles pour inputs et placeholders */
-    input, textarea {{
+    input, textarea, select {{
         background-color: white !important;
         color: #333333 !important;
         border-color: #CCCCCC !important;
     }}
     
-    ::placeholder {{
+    input::placeholder, textarea::placeholder {{
         color: #666666 !important;
         opacity: 1 !important;
     }}
+    
+    /* Forcer les inputs dans les sélecteurs */
     [data-baseweb="select"] input {{
         color: #333333 !important;
+        background-color: white !important;
     }}
-    /* Force blue headers on GitHub */
+    
+    /* Messages d'alerte et info boxes */
+    .stAlert, [data-testid="stAlert"] {{
+        background-color: white !important;
+        color: #333333 !important;
+    }}
+    
+    /* Expanders */
+    [data-testid="stExpander"] {{
+        background-color: white !important;
+    }}
+    [data-testid="stExpander"] * {{
+        color: #333333 !important;
+    }}
+    
+    /* Radio buttons et selectbox */
+    [data-testid="stRadio"] label, [data-testid="stSelectbox"] label {{
+        color: #333333 !important;
+    }}
+    
+    /* Force le mode clair sur les graphiques matplotlib */
+    .stPyplot {{
+        background-color: white !important;
+    }}
+    
+    /* Classes custom du projet */
+    .info-card {{
+        background-color: white !important;
+        color: #333333 !important;
+    }}
+    .info-card * {{
+        color: #333333 !important;
+    }}
+    
+    .premium-box {{
+        background-color: white !important;
+        color: #333333 !important;
+    }}
+    .premium-box * {{
+        color: #333333 !important;
+    }}
+    
+    .cta-message {{
+        background-color: #f0f7ff !important;
+        color: #333333 !important;
+    }}
+    
+    /* Force headers GitHub style */
     .markdown-body h1, .markdown-body h2, .markdown-body h3, 
     .markdown-body h4, .markdown-body h5, .markdown-body h6 {{
         color: {colors['primary']} !important;
@@ -866,8 +958,8 @@ def page_accueil():
     <div class='highlight-box'>
     <h2 style='text-align: center; margin-bottom: 20px;'>Découvrez les métiers à impact qui correspondent à vos intérêts</h2>
     <p style='text-align: center; font-size: 1.2em;'>Trouvez votre voie professionnelle dans l'économie durable en quelques clics</p>
-    <div style='font-size: 0.75em; color: #888; text-align: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 8px;'>
-        <p style='margin: 0;'>Sources et données: Lefebvre Dalloz, Les Echos, Birdeo, Université Paris-Dauphine, PWC, ISE, Michael Page, Fab Groupe, Makesense, Glassdoor, Deloitte, Data.gouv</p>
+    <div style='font-size: 0.75em; color: #666666 !important; text-align: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 8px; background-color: transparent !important;'>
+        <p style='margin: 0; color: #666666 !important;'>Sources et données: Lefebvre Dalloz, Les Echos, Birdeo, Université Paris-Dauphine, PWC, ISE, Michael Page, Fab Groupe, Makesense, Glassdoor, Deloitte, Data.gouv</p>
     </div>
     </div>
     """, unsafe_allow_html=True)
@@ -912,9 +1004,9 @@ def page_interests():
     
     # Titre principal avec style amélioré
     st.markdown("""
-    <div style='padding: 20px; background-color: white; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
-        <h2 style='text-align: center; color: #0356A5;'>Découvrez les métiers à impact qui correspondent à votre profil</h2>
-        <p style='text-align: center; font-size: 1.1em;'>Quelques clics pour trouver votre voie dans l'économie durable</p>
+    <div style='padding: 20px; background-color: white !important; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
+        <h2 style='text-align: center; color: #0356A5 !important;'>Découvrez les métiers à impact qui correspondent à votre profil</h2>
+        <p style='text-align: center; font-size: 1.1em; color: #333333 !important;'>Quelques clics pour trouver votre voie dans l'économie durable</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -928,9 +1020,9 @@ def page_interests():
     
     # 1. Section objectif professionnel
     st.markdown("""
-    <div style='padding: 15px 20px; background-color: #e6f7f2; border-left: 4px solid #00916E; border-radius: 5px; margin-bottom: 25px;'>
-        <h3 style='color: #00916E;'>Votre objectif professionnel</h3>
-        <p>Quelle est votre situation actuelle ?</p>
+    <div style='padding: 15px 20px; background-color: #e6f7f2 !important; border-left: 4px solid #00916E; border-radius: 5px; margin-bottom: 25px;'>
+        <h3 style='color: #00916E !important;'>Votre objectif professionnel</h3>
+        <p style='color: #333333 !important;'>Quelle est votre situation actuelle ?</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -957,9 +1049,9 @@ def page_interests():
     
     # 2. Section domaines d'intérêt - présentation simple et efficace
     st.markdown("""
-    <div style='padding: 15px 20px; background-color: #f0f7ff; border-left: 4px solid #0356A5; border-radius: 5px; margin-bottom: 15px;'>
-        <h3 style='color: #0356A5;'>Vos domaines d'intérêt</h3>
-        <p>Sélectionnez les domaines qui vous intéressent :</p>
+    <div style='padding: 15px 20px; background-color: #f0f7ff !important; border-left: 4px solid #0356A5; border-radius: 5px; margin-bottom: 15px;'>
+        <h3 style='color: #0356A5 !important;'>Vos domaines d'intérêt</h3>
+        <p style='color: #333333 !important;'>Sélectionnez les domaines qui vous intéressent :</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -990,8 +1082,8 @@ def page_interests():
     # Afficher un résumé des tags sélectionnés pour un feedback clair
     if st.session_state.selected_tags:
         st.markdown(f"""
-        <div style='padding: 12px 18px; background-color: #eef7ff; border-radius: 8px; margin: 15px 0; border: 1px solid #0356A5;'>
-            <p><strong>🔍 Domaines sélectionnés ({len(st.session_state.selected_tags)}) :</strong> {', '.join(st.session_state.selected_tags)}</p>
+        <div style='padding: 12px 18px; background-color: #eef7ff !important; border-radius: 8px; margin: 15px 0; border: 1px solid #0356A5;'>
+            <p style='color: #333333 !important;'><strong>🔍 Domaines sélectionnés ({len(st.session_state.selected_tags)}) :</strong> {', '.join(st.session_state.selected_tags)}</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1000,9 +1092,9 @@ def page_interests():
     
     # 3. Section types d'entreprises - avec multiselect au lieu de toggles
     st.markdown("""
-    <div style='padding: 15px 20px; background-color: #fffaf0; border-left: 4px solid #FFE548; border-radius: 5px; margin-bottom: 15px;'>
-        <h3 style='color: #333;'>Types d'entreprises</h3>
-        <p>Sélectionnez les types d'entreprises qui vous intéressent :</p>
+    <div style='padding: 15px 20px; background-color: #fffaf0 !important; border-left: 4px solid #FFE548; border-radius: 5px; margin-bottom: 15px;'>
+        <h3 style='color: #333333 !important;'>Types d'entreprises</h3>
+        <p style='color: #333333 !important;'>Sélectionnez les types d'entreprises qui vous intéressent :</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1020,8 +1112,8 @@ def page_interests():
     
     # Bouton d'action principal avec style amélioré
     st.markdown("""
-    <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center;'>
-        <p style='font-weight: bold; font-size: 1.1em;'>Prêt à découvrir les métiers qui correspondent à votre profil ?</p>
+    <div style='background-color: white !important; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center;'>
+        <p style='font-weight: bold; font-size: 1.1em; color: #333333 !important;'>Prêt à découvrir les métiers qui correspondent à votre profil ?</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1180,7 +1272,7 @@ def page_metier_detail():
             change_page("resultats")
         return
     
-    # CSS minimal pour la mise en page
+    # CSS minimal pour la mise en page - FORÇAGE COMPLET DU MODE CLAIR
     st.markdown("""
     <style>
     /* Styles de base */
@@ -1189,7 +1281,8 @@ def page_metier_detail():
     }
     
     .premium-box {
-        background-color: white;
+        background-color: white !important;
+        color: #333333 !important;
         border-radius: 10px;
         padding: 30px;
         margin-top: 10px;
@@ -1198,27 +1291,26 @@ def page_metier_detail():
         border-left: 5px solid #0356A5;
     }
     
-    .dark .premium-box {
-        background-color: #1E1E1E;
-    }
+    /* SUPPRESSION des styles dark mode */
     
     .section-divider {
         width: 100%;
         height: 2px;
-        background-color: #eee;
+        background-color: #eee !important;
         margin: 35px 0;
     }
     
     .cta-title {
         font-size: 24px;
         font-weight: bold;
-        color: #0356A5;
+        color: #0356A5 !important;
         margin-bottom: 15px;
         text-align: center;
     }
     
     .cta-message {
-        background-color: #f0f7ff;
+        background-color: #f0f7ff !important;
+        color: #333333 !important;
         border-left: 4px solid #0356A5;
         padding: 15px;
         margin-bottom: 20px;
@@ -1226,9 +1318,7 @@ def page_metier_detail():
         text-align: center;
     }
     
-    .dark .cta-message {
-        background-color: rgba(3, 86, 165, 0.2);
-    }
+    /* SUPPRESSION des styles dark mode */
     
     .small-chart {
         max-width: 90%;
@@ -1236,17 +1326,19 @@ def page_metier_detail():
     }
     
     .info-card {
-        background-color: white;
+        background-color: white !important;
+        color: #333333 !important;
         padding: 15px;
         border-radius: 10px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         margin-bottom: 15px;
         border-left: 3px solid #0356A5;
     }
-    
-    .dark .info-card {
-        background-color: rgba(50, 50, 60, 0.8);
+    .info-card * {
+        color: #333333 !important;
     }
+    
+    /* SUPPRESSION des styles dark mode */
     </style>
     """, unsafe_allow_html=True)
     
@@ -1485,18 +1577,18 @@ def page_metier_detail():
                         info_html = ""
                         
                         if 'Durée' in formation and formation['Durée']:
-                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['primary']}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8em;'>⏱️ {formation['Durée']}</span></div>"
+                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['primary']} !important; color:white !important; padding:3px 8px; border-radius:10px; font-size:0.8em;'>⏱️ {formation['Durée']}</span></div>"
                         
                         if 'Niveau' in formation and formation['Niveau']:
-                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['green']}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8em;'>🎯 Niveau {formation['Niveau']}</span></div>"
+                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['green']} !important; color:white !important; padding:3px 8px; border-radius:10px; font-size:0.8em;'>🎯 Niveau {formation['Niveau']}</span></div>"
                         
                         if 'Prix' in formation and formation['Prix']:
-                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['secondary']}; color:#333; padding:3px 8px; border-radius:10px; font-size:0.8em;'>💰 {formation['Prix']}€</span></div>"
+                            info_html += f"<div style='margin-bottom:10px;'><span style='background-color:{st.session_state.colors['secondary']} !important; color:#333333 !important; padding:3px 8px; border-radius:10px; font-size:0.8em;'>💰 {formation['Prix']}€</span></div>"
                         
                         st.markdown(info_html, unsafe_allow_html=True)
                         
                         if 'Lien' in formation and formation['Lien']:
-                            st.markdown(f"<a href='{formation['Lien']}' target='_blank' style='display:inline-block; margin-top:10px; background-color:{st.session_state.colors['primary']}; color:white; padding:5px 15px; border-radius:5px; text-decoration:none; font-size:0.9em;'>En savoir plus</a>", unsafe_allow_html=True)
+                            st.markdown(f"<a href='{formation['Lien']}' target='_blank' style='display:inline-block; margin-top:10px; background-color:{st.session_state.colors['primary']} !important; color:white !important; padding:5px 15px; border-radius:5px; text-decoration:none; font-size:0.9em;'>En savoir plus</a>", unsafe_allow_html=True)
         else:
             st.info("Aucune formation spécifique n'est disponible pour ce métier.")
         
@@ -1522,8 +1614,8 @@ def page_metier_detail():
                         
                         st.markdown(f"""
                         <div class='info-card'>
-                            <h4 style='margin-top: 0; color: {tendance_color};'>{tendance_emoji} Croissance annuelle</h4>
-                            <p style='font-size: 1.1em;'>{tendance}</p>
+                            <h4 style='margin-top: 0; color: {tendance_color} !important;'>{tendance_emoji} Croissance annuelle</h4>
+                            <p style='font-size: 1.1em; color: #333333 !important;'>{tendance}</p>
                         </div>
                         """, unsafe_allow_html=True)
                 
@@ -1533,8 +1625,8 @@ def page_metier_detail():
                     if pd.notna(demande):
                         st.markdown(f"""
                         <div class='info-card'>
-                            <h4 style='margin-top: 0;'>🔍 Demande du marché</h4>
-                            <p style='font-size: 1.1em;'>{demande}</p>
+                            <h4 style='margin-top: 0; color: #333333 !important;'>🔍 Demande du marché</h4>
+                            <p style='font-size: 1.1em; color: #333333 !important;'>{demande}</p>
                         </div>
                         """, unsafe_allow_html=True)
             
@@ -1544,19 +1636,19 @@ def page_metier_detail():
                 if 'Salaire_Tendance' in tendances:
                     sal_tendance = tendances['Salaire_Tendance']
                     if pd.notna(sal_tendance):
-                        tendance_salariale = f"<p><strong>💰 Tendance salariale:</strong> {sal_tendance}</p>"
+                        tendance_salariale = f"<p style='color: #333333 !important;'><strong>💰 Tendance salariale:</strong> {sal_tendance}</p>"
                 
                 secteurs_recruteurs = ""
                 if 'Secteurs_Recruteurs' in tendances:
                     secteurs = tendances['Secteurs_Recruteurs']
                     if pd.notna(secteurs):
-                        secteurs_recruteurs = f"<p><strong>🏢 Principaux secteurs recruteurs:</strong> {secteurs}</p>"
+                        secteurs_recruteurs = f"<p style='color: #333333 !important;'><strong>🏢 Principaux secteurs recruteurs:</strong> {secteurs}</p>"
                 
                 # Afficher le bloc combiné s'il contient des données
                 if tendance_salariale or secteurs_recruteurs:
                     st.markdown(f"""
                     <div class='info-card'>
-                        <h4 style='margin-top: 0;'>🔮 Perspectives d'évolution</h4>
+                        <h4 style='margin-top: 0; color: #333333 !important;'>🔮 Perspectives d'évolution</h4>
                         {tendance_salariale}
                         {secteurs_recruteurs}
                     </div>
