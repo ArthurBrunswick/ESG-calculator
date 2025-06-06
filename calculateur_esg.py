@@ -342,8 +342,6 @@ def initialize_session_state():
             'metier_selectionne': "", # Métier sélectionné pour la page détaillée
             'hubspot_submitted': False  # Indicateur d'envoi à Hubspot
         },
-        'data_loaded': False,     # Indicateur de chargement des données
-        'data': {},               # Données chargées
         'selected_tags': [],      # Tags sélectionnés
         'selected_entreprises': [], # Types d'entreprises sélectionnés
         'email_submitted': False,  # Indicateur de soumission d'email
@@ -433,10 +431,10 @@ def send_data_to_hubspot(user_data):
         raise e
 
 # ----- GESTION DES DONNÉES -----
+@st.cache_data(ttl=3600)  # Cache de 1 heure
 def load_data():
     """Charge les données depuis le fichier Excel."""
-    if st.session_state.data_loaded:
-        return st.session_state.data
+    # Note: avec @st.cache_data, on n'utilise plus st.session_state pour le cache
     
     try:
         file_path = 'data/IED _ esg_calculator data.xlsx'
@@ -450,17 +448,16 @@ def load_data():
         
         logger.debug(f"Colonnes disponibles dans la feuille métier: {df_metiers.columns.tolist()}")
         
-        # Stocker les données dans l'état de la session
-        st.session_state.data = {
+        # Retourner directement les données (le cache est géré par Streamlit)
+        data = {
             'salaire': df_salaire,
             'competences': df_competences,
             'metiers': df_metiers,
             'formations': df_formations,
             'tendances': df_tendances
         }
-        st.session_state.data_loaded = True
         logger.info("Toutes les données ont été chargées avec succès.")
-        return st.session_state.data
+        return data
     except Exception as e:
         logger.error(f"Erreur critique lors du chargement des données: {str(e)}")
         st.error(f"Erreur lors du chargement des données: {str(e)}")
